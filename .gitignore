@@ -1,0 +1,9 @@
+
+contracts/bun.lock
+
+# Secrets / local env (defense-in-depth; per-package .gitignore also covers these)
+.env
+.env.*
+**/.env
+**/.env.local
+

@@ -1,0 +1,28 @@
+{
+  "name": "hardhat-project",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run scripts/deploy.ts --network xlayer",
+    "deploy-all": "npx hardhat run scripts/deploy-all.ts --network xlayer",
+    "deploy-team-tokens": "npx hardhat run scripts/deploy-team-tokens.ts --network xlayer",
+    "mint-team-tokens": "npx hardhat run scripts/mint-team-tokens.ts --network xlayer",
+    "test-api": "npx hardhat run scripts/test-api.ts",
+    "debug-api": "npx hardhat run scripts/debug-api.ts",
+    "update-stats": "npx hardhat run scripts/update-player-stats-cron.ts --network xlayer",
+    "mongodb-registry": "npx hardhat run scripts/mongodb-registry.ts --network xlayer",
+    "deploy-ticketing": "npx hardhat run scripts/deploy-ticketing.ts --network xlayer"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.3.0",
+    "@pythnetwork/entropy-sdk-solidity": "^2.0.0",
+    "dotenv": "^17.2.0",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "@types/express": "^4.17.21",
+    "@types/node-cron": "^3.0.11",
+    "hardhat": "^2.25.0"
+  }
+}
