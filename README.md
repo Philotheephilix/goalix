@@ -6,6 +6,8 @@
 
 Built for the **X Cup Hackathon** (X Layer · May 19–28). World Cup theme. Live on X Layer testnet.
 
+![Goalix — World Cup team wheel](./screenshots/hero-team-wheel.png)
+
 ---
 
 ## The problem
@@ -43,6 +45,16 @@ This isn't a deck. The full loop runs on-chain today.
 | **Performance oracle** — API-Football → on-chain stats | ✅ Wired |
 
 **Scope for the hackathon:** one league — the **World Cup (2022)** — and one squad: **Argentina**, the champions. Messi, Di María, Lautaro, Emiliano Martínez and 16 more are each a tradeable, performance-priced token.
+
+### Screenshots
+
+| Leagues | Marketplace |
+|---|---|
+| ![Leagues](./screenshots/leagues.png) | ![Marketplace](./screenshots/marketplace.png) |
+| **Player & performance analysis** | **Buy a Player Fan Token** |
+| ![Player performance](./screenshots/player-performance.png) | ![Buy modal](./screenshots/buy-modal.png) |
+| **PvP game — stake 5 players** | **Portfolio & season claim** |
+| ![PvP game](./screenshots/pvp-game.png) | ![Portfolio claim](./screenshots/portfolio-claim.png) |
 
 ### Deployed contracts
 
