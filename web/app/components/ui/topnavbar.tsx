@@ -67,8 +67,9 @@ export default function TopNav() {
   const [faucetOpen, setFaucetOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState("");
 
-  // Hide navbar completely on landing page (/) and on /game/battle
-  const shouldShowNavbar = pathname !== "/" && pathname !== "/game/battle";
+  // Hide navbar completely on landing page (/), /game/battle, and the pitch deck
+  const shouldShowNavbar =
+    pathname !== "/" && pathname !== "/game/battle" && pathname !== "/pitch";
 
   return (
     <AnimatePresence>
