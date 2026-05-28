@@ -8,7 +8,7 @@ This document describes the integration between the Next.js frontend and the sma
 
 ### Contract Address
 - **Game Contract**: `0x0A32adFb8d10732A5BF6aE2aB8fA42ca3a69D087`
-- **Network**: Chiliz Chain (Testnet/Mainnet)
+- **Network**: X Layer testnet (chainId 1952)
 
 ### Key Features
 

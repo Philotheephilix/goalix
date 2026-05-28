@@ -59,124 +59,39 @@ const BattleContent = () => {
         setLoading(true);
         setError(null);
 
-        // Check if we have winner info from URL params (from join game)
-        const winner = searchParams.get('winner');
-        const isCreatorWinner = searchParams.get('isCreatorWinner') === 'true';
-
-        if (winner) {
-          // We have game results from joining
-          const userRole = isCreatorWinner ? 'joiner' : 'creator';
-          const userWon = (isCreatorWinner && address !== '0xCreatorAddress123456789') || 
-                         (!isCreatorWinner && address === '0xCreatorAddress123456789');
-
-          setGameResult({
-            winner,
-            isActive: false,
-            userRole,
-            userWon,
-            gameCode: gameId
-          });
-
-          // Mock game details
-          const details: GameDetails = {
-            creator: '0xCreatorAddress123456789',
-            creatorContracts: [
-              '0xToken1Address123456789',
-              '0xToken2Address123456789', 
-              '0xToken3Address123456789',
-              '0xToken4Address123456789',
-              '0xToken5Address123456789'
-            ],
-            joiner: address,
-            joinerContracts: [
-              '0xToken6Address123456789',
-              '0xToken7Address123456789',
-              '0xToken8Address123456789',
-              '0xToken9Address123456789',
-              '0xToken10Address123456789'
-            ],
-            winner,
-            isActive: false
-          };
-
-          setGameDetails(details);
-        } else {
-          // Fetch from mock API
-          try {
-            const response = await fetch(`/api/game/status?gameCode=${gameId}&userAddress=${address}`);
-            const result = await response.json();
-
-            if (!result.success) {
-              throw new Error(result.error || 'Game not found');
-            }
-
-            const details = result.data.gameDetails;
-            setGameDetails(details);
-
-            // Determine user role and result
-            const userRole = result.data.userRole;
-            const userWon = details.winner === address;
-
-            setGameResult({
-              winner: details.winner,
-              isActive: details.isActive,
-              userRole,
-              userWon,
-              gameCode: gameId
-            });
-
-            // If game is still active, start the validation animation
-            if (details.isActive) {
-              // Simulate game processing time
-              const interval = setInterval(() => {
-                setStatusIdx(prev => {
-                  if (prev < validatingTexts.length - 1) {
-                    return prev + 1;
-                  } else {
-                    clearInterval(interval);
-                    // After animation, check again for final result
-                    setTimeout(() => {
-                      fetchGameDetails(); // Re-fetch to get final result
-                    }, 1000);
-                    return prev;
-                  }
-                });
-              }, 1400);
-            }
-          } catch (apiError) {
-            console.error('API Error:', apiError);
-            // Fallback to mock data if API fails
-            const mockDetails: GameDetails = {
-              creator: '0xCreatorAddress123456789',
-              creatorContracts: [
-                '0xToken1Address123456789',
-                '0xToken2Address123456789', 
-                '0xToken3Address123456789',
-                '0xToken4Address123456789',
-                '0xToken5Address123456789'
-              ],
-              joiner: address,
-              joinerContracts: [
-                '0xToken6Address123456789',
-                '0xToken7Address123456789',
-                '0xToken8Address123456789',
-                '0xToken9Address123456789',
-                '0xToken10Address123456789'
-              ],
-              winner: address,
-              isActive: false
-            };
-
-            setGameDetails(mockDetails);
-            setGameResult({
-              winner: address,
-              isActive: false,
-              userRole: 'joiner',
-              userWon: true,
-              gameCode: gameId
-            });
-          }
+        // Read real game result from the Game contract on X Layer.
+        // Poll to tolerate public-RPC read-after-write lag.
+        const GAME = getGameContractAddress() as `0x${string}`;
+        let d = [] as any[];
+        for (let i = 0; i < 6; i++) {
+          d = (await client.readContract({
+            address: GAME,
+            abi: GAME_CONTRACT_ABI,
+            functionName: 'getGameDetails',
+            args: [gameId as `0x${string}`],
+          })) as any[];
+          if (d && d[0] && d[0] !== '0x0000000000000000000000000000000000000000') break;
+          await new Promise((r) => setTimeout(r, 1500));
         }
+        const details: GameDetails = {
+          creator: String(d[0]),
+          creatorContracts: (d[1] as string[]) || [],
+          joiner: String(d[2]),
+          joinerContracts: (d[3] as string[]) || [],
+          winner: String(d[4]),
+          isActive: Boolean(d[5]),
+        };
+        setGameDetails(details);
+        setGameResult({
+          winner: details.winner,
+          isActive: details.isActive,
+          userRole:
+            address.toLowerCase() === details.creator.toLowerCase()
+              ? 'creator'
+              : 'joiner',
+          userWon: details.winner.toLowerCase() === address.toLowerCase(),
+          gameCode: gameId,
+        });
 
       } catch (err) {
         console.error('Error fetching game details:', err);

@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { usePrivyWallet } from '../../lib/usePrivyWallet';
 import { Button } from '../components/ui/button';
+import { client } from '../../lib/client';
+// @ts-ignore
+import { PlayerTokenABI } from '../../lib/const';
 
 interface Token {
   id: string;
@@ -27,7 +30,7 @@ interface Token {
 }
 
 const ClaimPage = () => {
-  const { address } = usePrivyWallet();
+  const { address, walletClient } = usePrivyWallet();
   const isConnected = !!address;
   const [tokensData, setTokensData] = useState<Token[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,12 +72,34 @@ const ClaimPage = () => {
   }, [address, isConnected]);
 
   const handleClaim = async (token: Token) => {
+    if (!walletClient || !address || !token.contractAddress) {
+      alert("Connect your wallet first");
+      return;
+    }
     setClaiming((prev) => ({ ...prev, [token.id]: true }));
-    // TODO: Implement claim logic here (call contract or API)
-    setTimeout(() => {
+    try {
+      const hash = await walletClient.writeContract({
+        address: token.contractAddress as `0x${string}`,
+        abi: PlayerTokenABI,
+        functionName: "claim",
+        args: [],
+        account: address,
+        gas: BigInt(500000),
+      });
+      await client.waitForTransactionReceipt({ hash });
+      alert(`Claimed rewards for ${token.name}! Tx: ${hash}`);
+      // refresh holdings
+      setTokensData((prev) => prev.filter((t) => t.id !== token.id));
+    } catch (e: any) {
+      const msg = e?.shortMessage || e?.message || String(e);
+      alert(
+        msg.includes("Season not ended")
+          ? "Season not ended yet — rewards claimable after the season ends."
+          : `Claim failed: ${msg}`
+      );
+    } finally {
       setClaiming((prev) => ({ ...prev, [token.id]: false }));
-      alert(`Claimed rewards for ${token.name}`);
-    }, 1200);
+    }
   };
 
   return (

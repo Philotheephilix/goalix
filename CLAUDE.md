@@ -39,7 +39,7 @@ All `--network xlayer` commands require `PRIVATE_KEY` in env (`contracts/.env`) 
 ### Player tokens (the core primitive)
 `contracts/contracts/PlayerToken.sol` — one ERC20 contract **per player**, `decimals() == 0`. Key behaviors:
 - Tokens are minted to the contract itself and sold via `purchaseTokens` against a **bonding curve** (`calculateTotalPrice`) that scales with the player's performance score and reserve/demand ratio.
-- The payment token is the player's **team fan token**, not native CHZ (set at construction).
+- The payment token is the player's **team fan token**, not native OKB (set at construction).
 - `calculatePerformance(position)` derives a 1–10 score on-chain from stats, weighted differently per position (attacker/defender/goalkeeper/midfielder). This score drives both price and game outcomes.
 - Season lifecycle: `endSeason()` reserves 20% of the payment pool for the player; `claim()` lets holders burn their tokens for a pro-rata share of the remaining 80%; `playerClaim(...)` lets the player claim their reserved share.
 

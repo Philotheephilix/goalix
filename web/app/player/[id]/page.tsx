@@ -667,7 +667,7 @@ export default function PlayerProfileDashboard() {
                         type="number"
                         min={0}
                         step="0.01"
-                        placeholder="Price in CHZ"
+                        placeholder="Price in ARG"
                         value={ticketForm.price}
                         onChange={(e) =>
                           setTicketForm((f) => ({
@@ -719,7 +719,7 @@ export default function PlayerProfileDashboard() {
                         <div className="flex justify-between">
                           <span>Price per ticket:</span>
                           <span>
-                            {ticketForm.price} {player?.tokenSymbol || "CHZ"}
+                            {ticketForm.price} {player?.tokenSymbol || "ARG"}
                           </span>
                         </div>
                         <div className="flex justify-between font-semibold border-t border-zinc-600 pt-1 mt-2">
@@ -729,7 +729,7 @@ export default function PlayerProfileDashboard() {
                               parseFloat(ticketForm.quantity || "0") *
                               parseFloat(ticketForm.price || "0")
                             ).toFixed(2)}{" "}
-                            {player?.tokenSymbol || "CHZ"}
+                            {player?.tokenSymbol || "ARG"}
                           </span>
                         </div>
                       </div>
@@ -917,7 +917,7 @@ export default function PlayerProfileDashboard() {
                           <div className="flex justify-between">
                             <span>Price per unit:</span>
                             <span>
-                              {merchForm.price} {player?.tokenSymbol || "CHZ"}
+                              {merchForm.price} {player?.tokenSymbol || "ARG"}
                             </span>
                           </div>
                           <div className="flex justify-between font-semibold border-t border-zinc-600 pt-1 mt-2">
@@ -927,7 +927,7 @@ export default function PlayerProfileDashboard() {
                                 parseFloat(merchForm.supply || "0") *
                                 parseFloat(merchForm.price || "0")
                               ).toFixed(2)}{" "}
-                              {player?.tokenSymbol || "CHZ"}
+                              {player?.tokenSymbol || "ARG"}
                             </span>
                           </div>
                         </div>
@@ -1167,7 +1167,7 @@ export default function PlayerProfileDashboard() {
                         borderRadius: 8,
                         color: "#fff",
                       }}
-                      formatter={(value: any) => `${value} CHZ`}
+                      formatter={(value: any) => `${value} ARG`}
                     />
                     <Line
                       type="monotone"

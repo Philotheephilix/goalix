@@ -96,11 +96,11 @@ export default function TopNav() {
             >
               <span className="text-lg font-mono font-semibold text-white tracking-widest">
                 {" "}
-                SCORE
+                GOAL
               </span>
               <span className=" ml-[-8px] text-lg font-mono font-semibold text-red-600 tracking-widest">
                 {" "}
-                Z
+                IX
               </span>
             </div>
 

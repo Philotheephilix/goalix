@@ -51,13 +51,10 @@ contract GameContractMultiToken {
     // Create a new game
     function createGame(address[] memory contractAddresses) external returns (bytes32) {
         require(contractAddresses.length == CONTRACT_COUNT, "Must provide 5 ERC20 contract addresses");
-        require(userToGameCode[msg.sender] == bytes32(0), "User already in a game");
 
-        // Validate that all contracts are ERC20 tokens and user has sufficient balance
-        for (uint256 i = 0; i < contractAddresses.length; i++) {
-            IERC20 token = IERC20(contractAddresses[i]);
-            require(token.balanceOf(msg.sender) >= TOKENS_PER_CONTRACT, "Insufficient token balance");
-        }
+        // Note: staking + balance checks intentionally disabled for the demo
+        // (matches joinGame). Winner is decided purely by on-chain player
+        // performance scores; no tokens are escrowed or transferred.
 
         // Generate game code
         bytes32 gameCode = keccak256(abi.encodePacked(
@@ -72,9 +69,6 @@ contract GameContractMultiToken {
         game.creator = msg.sender;
         game.creatorContracts = contractAddresses;
         game.isActive = true;
-
-        // Stake tokens from all contracts
-        _stakeTokens(msg.sender, gameCode, contractAddresses);
 
         userToGameCode[msg.sender] = gameCode;
         emit GameCreated(msg.sender, gameCode, block.timestamp);

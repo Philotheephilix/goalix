@@ -7,3 +7,6 @@ contracts/bun.lock
 **/.env
 **/.env.local
 
+# Local screenshots / scratch
+/tmp/
+

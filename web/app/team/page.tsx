@@ -4,6 +4,19 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Loader from "../components/Loader";
+import { teams as teamsData } from "../../lib/const";
+
+// Fallback team list (Argentina / World Cup) used when the API-Football
+// quota is exhausted so the page still renders the playable team.
+const fallbackTeams = teamsData.response.map((t: any) => ({
+  id: t.team.id,
+  name: t.team.name,
+  code: t.team.code,
+  country: t.team.country,
+  founded: t.team.founded,
+  logo: t.team.logo,
+  venue: t.venue,
+}));
 
 // helper to convert deg to rad
 const deg2rad = (deg: number) => (deg * Math.PI) / 180;
@@ -74,18 +87,24 @@ export default function TeamSelection() {
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/teams")
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    fetch("/api/teams", { signal: ctrl.signal })
       .then((res) => {
+        clearTimeout(timer);
         if (!res.ok) throw new Error("Failed to fetch teams");
         return res.json();
       })
       .then((data) => {
-        setTeams(data);
+        const list = Array.isArray(data) && data.length > 0 ? data : fallbackTeams;
+        setTeams(list);
         setSelectedIndex(0);
         setLoading(false);
       })
-      .catch((err) => {
-        setError(err.message);
+      .catch(() => {
+        // API failed (e.g. quota) — use the fallback team list
+        setTeams(fallbackTeams);
+        setSelectedIndex(0);
         setLoading(false);
       });
   }, []);

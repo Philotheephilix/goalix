@@ -3,7 +3,7 @@
 
 export const CONTRACT_CONFIG = {
   // Game contract address - update this when deploying a new game contract
-  GAME_CONTRACT_ADDRESS: "0x838859Db205e129B87d8a3795476A11af6BB7efA",
+  GAME_CONTRACT_ADDRESS: "0xC7507E781eE5ef001e6fDe7B25F0702Bdf5854C1",
   
   // Network configuration
   NETWORK: {

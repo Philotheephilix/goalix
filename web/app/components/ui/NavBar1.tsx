@@ -98,10 +98,10 @@ export default function NavBar1() {
             >
               <span className="text-lg font-mono font-semibold text-white tracking-widest">
                 {" "}
-                SCORE
+                GOAL
               </span>
               <span className=" ml-[-6px] text-lg font-mono font-semibold text-red-600 tracking-widest">
-                Z
+                IX
               </span>
             </div>
 

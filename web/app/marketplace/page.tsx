@@ -269,7 +269,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <div className="flex-1">
               <h3 className="font-medium text-white">{item.name}</h3>
               <p className="text-sm text-zinc-400">
-                Price: {parseInt(item.price)} CHZ
+                Price: {parseInt(item.price)} ARG
               </p>
             </div>
           </div>
@@ -279,7 +279,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <StepIndicator
               step="approve"
               label="Approve Payment Token"
-              description="Allow the contract to spend your CHZ tokens"
+              description="Allow the contract to spend your ARG tokens"
             />
             <div className="ml-4 border-l-2 border-zinc-700 h-4"></div>
             <StepIndicator
@@ -422,6 +422,25 @@ const MarketplacePage = () => {
           let attributes: any[] = [];
 
           try {
+            // If the stored value is already a full URL, use it directly as the
+            // image (no IPFS/Pinata gateway resolution needed). Otherwise treat
+            // it as an IPFS CID and resolve metadata JSON via the Pinata gateway.
+            if (item.ipfsMetadataCID.startsWith("http")) {
+              return {
+                id: item.id.toString(),
+                name: item.name,
+                ipfsMetadataCID: item.ipfsMetadataCID,
+                price: item.price.toString(),
+                supply: item.supply.toString(),
+                minted: item.minted.toString(),
+                seller: item.seller,
+                paymentToken: item.paymentToken,
+                image: item.ipfsMetadataCID,
+                description,
+                attributes,
+              };
+            }
+
             // Fetch metadata from IPFS
             const metadataUrl = `https://gateway.pinata.cloud/ipfs/${item.ipfsMetadataCID}`;
             const metadataResponse = await fetch(metadataUrl);
@@ -649,7 +668,7 @@ const MarketplacePage = () => {
                                 {item.minted}/{item.supply} sold
                               </span>
                               <span className="text-lg font-bold">
-                                {parseInt(item.price)} CHZ
+                                {parseInt(item.price)} ARG
                               </span>
                             </div>
                           </div>

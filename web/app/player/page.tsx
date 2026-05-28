@@ -55,6 +55,21 @@ interface ApiPlayer {
 
 type PlayerListItem = (typeof playerList)[number];
 
+// Fallback player cards from the deployed Argentina registry (const players),
+// used when the API-Football quota is exhausted. Keeps playerIds aligned with
+// the on-chain token registry so the buy flow keeps working.
+const fallbackPlayers: PlayerCard[] = (playerList as any[]).map((p) => ({
+  id: p.playerId,
+  name: p.playerName,
+  title: p.position || "Player",
+  avatar: p.photoUrl,
+  handle: String(p.playerName || "").toLowerCase().replace(/\s+/g, ""),
+  status: "Online",
+  goals: p.statistics?.goals || 0,
+  assists: p.statistics?.assists || 0,
+  current_season_stats: { rating: parseFloat(p.statistics?.rating || "7.0") || 7 },
+}));
+
 function PlayerPageContent() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerCard | null>(null);
@@ -96,7 +111,14 @@ function PlayerPageContent() {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/team-players?teamId=${teamId}`);
+        // Abort the (slow / quota-limited) API after 4s and fall back to the
+        // on-chain Argentina registry so the page never hangs on the loader.
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4000);
+        const response = await fetch(`/api/team-players?teamId=${teamId}`, {
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
 
         if (!response.ok) {
           throw new Error("Failed to fetch team players");
@@ -104,7 +126,7 @@ function PlayerPageContent() {
 
         const data = await response.json();
 
-        if (data.response && Array.isArray(data.response)) {
+        if (data.response && Array.isArray(data.response) && data.response.length > 0) {
           const transformedPlayers: PlayerCard[] = data.response.map(
             (apiPlayer: ApiPlayer) => {
               const stats = apiPlayer.statistics[0]; // Get first team's stats
@@ -130,49 +152,15 @@ function PlayerPageContent() {
             setTeamName(data.response[0].statistics[0].team.name);
           }
         } else {
-          setPlayers([]);
+          // API empty (e.g. quota exhausted) — fall back to deployed registry
+          setPlayers(fallbackPlayers);
+          setTeamName(fallbackPlayers[0]?.title ? "Argentina" : "");
         }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch team players"
-        );
-        // Fallback to mock data if API fails
-        setPlayers([
-          {
-            id: 1,
-            name: "Lionel Messi",
-            title: "Forward",
-            avatar: "https://i.imgur.com/1Y2WwX2.jpeg",
-            handle: "leomessi",
-            status: "Online",
-            goals: 10,
-            assists: 8,
-            current_season_stats: { rating: 8.5 },
-          },
-          {
-            id: 2,
-            name: "Cristiano Ronaldo",
-            title: "Forward",
-            avatar: "https://i.imgur.com/tX0P2Ct.jpeg",
-            handle: "cristiano",
-            status: "Online",
-            goals: 12,
-            assists: 6,
-            current_season_stats: { rating: 8.2 },
-          },
-          {
-            id: 3,
-            name: "Neymar Jr",
-            title: "Forward",
-            avatar: "https://i.imgur.com/MiU8N3p.jpeg",
-            handle: "neymarjr",
-            status: "Online",
-            goals: 7,
-            assists: 9,
-            current_season_stats: { rating: 7.8 },
-          },
-        ]);
-        setTeamName("Barcelona"); // Fallback team name
+        // API failed — fall back to the deployed Argentina registry so the
+        // page (and the buy flow, which keys off these playerIds) still works.
+        setPlayers(fallbackPlayers);
+        setTeamName("Argentina");
       } finally {
         setLoading(false);
       }
@@ -301,6 +289,28 @@ function PlayerPageContent() {
       console.log("Approving tokens for player:", info);
       // 1. Approve FanToken spend
       const priceBN = parseUnits(price, 18);
+
+      // Pre-check fan-token balance so we fail fast with a clear message
+      // instead of a reverted purchaseTokens tx (transferFrom would revert).
+      const fanBal = (await client.readContract({
+        address: info.teamContractAddress as `0x${string}`,
+        abi: FANTOKEN_ABI,
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+      if (fanBal < priceBN) {
+        setBuyError(
+          `Insufficient ${info.teamCode || "fan"} tokens — need ${price}, you have ${formatUnits(
+            fanBal,
+            18
+          )}. Mint from the Faucet first.`
+        );
+        setBuyLoading(false);
+        setBuyStep(0);
+        setBuyStepStatus("");
+        return;
+      }
+
       const hash = await walletClient.writeContract({
         address: info.teamContractAddress as `0x${string}`,
         abi: FANTOKEN_ABI,

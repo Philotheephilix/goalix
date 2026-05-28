@@ -7,6 +7,11 @@ import QRCodeModal from '../components/QRCodeModal';
 import { useRouter } from 'next/navigation';
 import { usePrivyWallet } from '../../lib/usePrivyWallet';
 import { isValidGameCode } from '../../lib/game-utils';
+import { client } from '../../lib/client';
+import { decodeEventLog } from 'viem';
+// @ts-ignore
+import { GAME_CONTRACT_ABI } from '../../lib/const';
+import { getGameContractAddress } from '../../lib/contract-config';
 
 
 
@@ -158,7 +163,7 @@ export default function FootballGame() {
   
   const router = useRouter();
   const fieldRef = useRef<HTMLDivElement>(null);
-  const { address } = usePrivyWallet();
+  const { address, walletClient } = usePrivyWallet();
   const isConnected = !!address;
 
   // Check user's game status when address changes (mock version)
@@ -273,52 +278,57 @@ export default function FootballGame() {
       return;
     }
 
+    if (!walletClient) {
+      setError('Connect your wallet to join a game.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      const contractAddresses = selected.map(t => t.contractAddress as string);
-      console.log('Calling mock join game API with:', {
-        gameCode: joinCode,
-        contractAddresses: contractAddresses
-      });
+      const GAME = getGameContractAddress() as `0x${string}`;
+      const contractAddresses = selected.map(t => t.contractAddress as `0x${string}`);
 
-      // Call mock join game API
-      const response = await fetch('/api/game/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          gameCode: joinCode,
-          contractAddresses,
-          userAddress: address
-        }),
+      // Join + play on-chain (joinGame triggers _playGame, sets winner)
+      const hash = await walletClient.writeContract({
+        address: GAME,
+        abi: GAME_CONTRACT_ABI,
+        functionName: 'joinGame',
+        args: [joinCode as `0x${string}`, contractAddresses],
+        account: address,
+        gas: BigInt(1500000),
       });
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to join game');
+      await client.waitForTransactionReceipt({ hash });
+
+      // Read result; poll until the game resolves (RPC node lag tolerance).
+      let details = [] as any[];
+      for (let i = 0; i < 8; i++) {
+        details = (await client.readContract({
+          address: GAME,
+          abi: GAME_CONTRACT_ABI,
+          functionName: 'getGameDetails',
+          args: [joinCode as `0x${string}`],
+        })) as any[];
+        if (details && details[4] && !details[5]) break; // winner set, not active
+        await new Promise((r) => setTimeout(r, 1500));
       }
-      
-      const { gameDetails, tokenTransfers, winner, isCreatorWinner, message } = result.data;
-      console.log('Game joined successfully!');
-      console.log('Winner:', winner);
-      console.log('Token transfers:', tokenTransfers);
-      
+      const creator = String(details[0]);
+      const winner = String(details[4]);
+      const isCreatorWinner = winner.toLowerCase() === creator.toLowerCase();
+      console.log('Game played on-chain. winner:', winner);
+
       setGameState({
         isInGame: true,
         gameCode: joinCode,
-        gameDetails: gameDetails,
+        gameDetails: { creator, winner },
         userRole: 'joiner'
       });
-      
-      // Navigate to battle page with game results
+
       router.push(`/game/battle?gameId=${joinCode}&winner=${winner}&isCreatorWinner=${isCreatorWinner}`);
-      
+
     } catch (err: any) {
-      setError(err?.message || "Failed to join game. Please try again.");
+      setError(err?.shortMessage || err?.message || "Failed to join game. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -330,10 +340,8 @@ export default function FootballGame() {
     console.log('address:', address);
     console.log('selected.length:', selected.length);
     
-    if (!address || selected.length !== 5) {
-      const errorMsg = 'Please select exactly 5 players to start a game';
-      console.error('Validation failed:', errorMsg);
-      setError(errorMsg);
+    if (!address || !walletClient || selected.length !== 5) {
+      setError('Connect wallet and select exactly 5 players to start a game');
       return;
     }
 
@@ -341,39 +349,45 @@ export default function FootballGame() {
       console.log('Starting game creation...');
       setLoading(true);
       setError(null);
-      
-      const contractAddresses = selected.map((t) => t.contractAddress as string);
-      console.log('Contract addresses:', contractAddresses);
-      
-      // Call mock create game API
-      console.log('Calling mock create game API...');
-      const response = await fetch('/api/game/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contractAddresses,
-          userAddress: address
-        }),
+
+      const GAME = getGameContractAddress() as `0x${string}`;
+      const contractAddresses = selected.map((t) => t.contractAddress as `0x${string}`);
+
+      // Create game on-chain
+      const hash = await walletClient.writeContract({
+        address: GAME,
+        abi: GAME_CONTRACT_ABI,
+        functionName: 'createGame',
+        args: [contractAddresses],
+        account: address,
+        gas: BigInt(900000),
       });
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create game');
+      const receipt = await client.waitForTransactionReceipt({ hash });
+
+      // Get the authoritative game code from the GameCreated event in this tx
+      // (avoids RPC read-after-write lag / stale userToGameCode values).
+      let gameCode = "0x" + "0".repeat(64);
+      for (const log of receipt.logs) {
+        try {
+          const ev: any = decodeEventLog({
+            abi: GAME_CONTRACT_ABI,
+            data: log.data,
+            topics: log.topics,
+          });
+          if (ev.eventName === 'GameCreated' && ev.args?.gameCode) {
+            gameCode = ev.args.gameCode as string;
+            break;
+          }
+        } catch {}
       }
-      
-      const { gameCode, transactionHash } = result.data;
-      console.log('Game created successfully!');
-      console.log('Game code:', gameCode);
-      console.log('Transaction hash:', transactionHash);
-      
+      const transactionHash = hash;
+      console.log('Game created on-chain. code:', gameCode, 'tx:', hash);
+
       setGameCode(gameCode);
       setGameState({
         isInGame: true,
         gameCode: gameCode,
-        gameDetails: result.data,
+        gameDetails: { transactionHash },
         userRole: 'creator'
       });
       
