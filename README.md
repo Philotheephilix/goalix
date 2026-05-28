@@ -2,6 +2,10 @@
 
 ### Performance-driven fan engagement, built on X Layer.
 
+## Demo & Pitch Video
+
+[![Watch the Demo](https://img.shields.io/badge/Watch-Demo%20%26%20Pitch%20Video-red?style=for-the-badge&logo=google-drive)](https://drive.google.com/file/d/1Ei6cAVmN2GUgLHiS3Gd17AUbJtd6qaxX/view?usp=drivesdk)
+
 > Fan tokens today reward fame. Goalix rewards **form**. We turn the billions of fleeting interactions around a World Cup into persistent, on-chain participation — one player, one match, one tap at a time.
 
 Built for the **X Cup Hackathon** (X Layer · May 19–28). World Cup theme. Live on X Layer testnet.
