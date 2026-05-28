@@ -4,19 +4,44 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Loader from "../components/Loader";
-import { teams as teamsData } from "../../lib/const";
 
-// Fallback team list (Argentina / World Cup) used when the API-Football
-// quota is exhausted so the page still renders the playable team.
-const fallbackTeams = teamsData.response.map((t: any) => ({
-  id: t.team.id,
-  name: t.team.name,
-  code: t.team.code,
-  country: t.team.country,
-  founded: t.team.founded,
-  logo: t.team.logo,
-  venue: t.venue,
-}));
+// World Cup 2022 — full 32-nation wheel. Only Argentina (id 26) is deployed
+// with on-chain player tokens on testnet; the rest are shown but locked.
+const flag = (cc: string) => `https://flagcdn.com/w320/${cc}.png`;
+const worldCupTeams = [
+  { id: 26, name: "Argentina", code: "ARG", logo: "https://media.api-sports.io/football/teams/26.png", available: true },
+  { id: 9001, name: "France", code: "FRA", logo: flag("fr"), available: false },
+  { id: 9002, name: "Brazil", code: "BRA", logo: flag("br"), available: false },
+  { id: 9003, name: "England", code: "ENG", logo: flag("gb-eng"), available: false },
+  { id: 9004, name: "Spain", code: "ESP", logo: flag("es"), available: false },
+  { id: 9005, name: "Portugal", code: "POR", logo: flag("pt"), available: false },
+  { id: 9006, name: "Netherlands", code: "NED", logo: flag("nl"), available: false },
+  { id: 9007, name: "Germany", code: "GER", logo: flag("de"), available: false },
+  { id: 9008, name: "Croatia", code: "CRO", logo: flag("hr"), available: false },
+  { id: 9009, name: "Morocco", code: "MAR", logo: flag("ma"), available: false },
+  { id: 9010, name: "Belgium", code: "BEL", logo: flag("be"), available: false },
+  { id: 9011, name: "Uruguay", code: "URU", logo: flag("uy"), available: false },
+  { id: 9012, name: "Mexico", code: "MEX", logo: flag("mx"), available: false },
+  { id: 9013, name: "USA", code: "USA", logo: flag("us"), available: false },
+  { id: 9014, name: "Switzerland", code: "SUI", logo: flag("ch"), available: false },
+  { id: 9015, name: "Japan", code: "JPN", logo: flag("jp"), available: false },
+  { id: 9016, name: "South Korea", code: "KOR", logo: flag("kr"), available: false },
+  { id: 9017, name: "Senegal", code: "SEN", logo: flag("sn"), available: false },
+  { id: 9018, name: "Poland", code: "POL", logo: flag("pl"), available: false },
+  { id: 9019, name: "Denmark", code: "DEN", logo: flag("dk"), available: false },
+  { id: 9020, name: "Serbia", code: "SRB", logo: flag("rs"), available: false },
+  { id: 9021, name: "Wales", code: "WAL", logo: flag("gb-wls"), available: false },
+  { id: 9022, name: "Ecuador", code: "ECU", logo: flag("ec"), available: false },
+  { id: 9023, name: "Australia", code: "AUS", logo: flag("au"), available: false },
+  { id: 9024, name: "Cameroon", code: "CMR", logo: flag("cm"), available: false },
+  { id: 9025, name: "Ghana", code: "GHA", logo: flag("gh"), available: false },
+  { id: 9026, name: "Tunisia", code: "TUN", logo: flag("tn"), available: false },
+  { id: 9027, name: "Costa Rica", code: "CRC", logo: flag("cr"), available: false },
+  { id: 9028, name: "Canada", code: "CAN", logo: flag("ca"), available: false },
+  { id: 9029, name: "Saudi Arabia", code: "KSA", logo: flag("sa"), available: false },
+  { id: 9030, name: "Iran", code: "IRN", logo: flag("ir"), available: false },
+  { id: 9031, name: "Qatar", code: "QAT", logo: flag("qa"), available: false },
+];
 
 // helper to convert deg to rad
 const deg2rad = (deg: number) => (deg * Math.PI) / 180;
@@ -64,50 +89,16 @@ interface Team {
   id: number;
   name: string;
   code: string;
-  country: string;
-  founded: number;
   logo: string;
-  venue: {
-    id: number;
-    name: string;
-    address: string;
-    city: string;
-    capacity: number;
-    surface: string;
-    image: string;
-  };
+  available?: boolean;
 }
 
 export default function TeamSelection() {
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams] = useState<Team[]>(worldCupTeams);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    setLoading(true);
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-    fetch("/api/teams", { signal: ctrl.signal })
-      .then((res) => {
-        clearTimeout(timer);
-        if (!res.ok) throw new Error("Failed to fetch teams");
-        return res.json();
-      })
-      .then((data) => {
-        const list = Array.isArray(data) && data.length > 0 ? data : fallbackTeams;
-        setTeams(list);
-        setSelectedIndex(0);
-        setLoading(false);
-      })
-      .catch(() => {
-        // API failed (e.g. quota) — use the fallback team list
-        setTeams(fallbackTeams);
-        setSelectedIndex(0);
-        setLoading(false);
-      });
-  }, []);
 
   const totalTeams = teams.length;
 
@@ -119,11 +110,12 @@ export default function TeamSelection() {
   const selectedTeam = teams[selectedIndex];
 
   const handleTeamSelect = (teamId: number) => {
-    router.push(`/player?team=${teamId}`);
+    const t = teams.find((x) => x.id === teamId);
+    if (t?.available) router.push(`/player?team=${teamId}`);
   };
 
   const handleExplorePlayer = () => {
-    if (selectedTeam) {
+    if (selectedTeam?.available) {
       router.push(`/player?team=${selectedTeam.id}`);
     }
   };
@@ -245,20 +237,36 @@ export default function TeamSelection() {
             </div>
 
             {/* Bottom: Explore Player Button */}
-            <div className="mt-8">
-              <button 
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <button
                 onClick={handleExplorePlayer}
-                className="relative h-12 px-8 py-2 text-white font-mono font-bold uppercase tracking-wide overflow-hidden group"
+                disabled={!selectedTeam?.available}
+                className={`relative h-12 px-8 py-2 font-mono font-bold uppercase tracking-wide overflow-hidden group ${
+                  selectedTeam?.available
+                    ? "text-white cursor-pointer"
+                    : "text-zinc-500 cursor-not-allowed opacity-50"
+                }`}
                 style={{
                   background: "linear-gradient(90deg, rgba(207, 10, 10, 0.2) 0%, rgba(207, 10, 10, 0.4) 100%)",
-                  
                   border: "1px solid rgba(207, 10, 10, 0.5)",
-                  boxShadow: "0 0 20px rgba(207, 10, 10, 0.4)",
+                  boxShadow: selectedTeam?.available
+                    ? "0 0 20px rgba(207, 10, 10, 0.4)"
+                    : "none",
                 }}
               >
-                <span className="relative z-10">Explore Player</span>
-                <div className="absolute inset-0 bg-red-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                <span className="relative z-10">
+                  {selectedTeam?.available ? "Explore Player" : "Locked"}
+                </span>
+                {selectedTeam?.available && (
+                  <div className="absolute inset-0 bg-red-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                )}
               </button>
+              {!selectedTeam?.available && (
+                <p className="text-xs text-zinc-400 text-center max-w-xs">
+                  Only <span className="text-red-400 font-semibold">Argentina</span> is
+                  available for testing on testnet. More teams coming soon.
+                </p>
+              )}
             </div>
           </div>
         )}
